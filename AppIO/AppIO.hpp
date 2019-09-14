@@ -13,6 +13,7 @@
 #include <mutex>
 
 namespace AppIO {
+#define PORT 7721
 
     namespace asio = boost::asio;
     namespace options = boost::program_options;
@@ -106,8 +107,8 @@ namespace AppIO {
             return _config;
         }
 
-        void
-        readConfigFile() { // todo: read this https://stackoverflow.com/questions/36304000/asio-is-there-an-automatically-resizable-buffer-for-receiving-input
+// todo: read this https://stackoverflow.com/questions/36304000/asio-is-there-an-automatically-resizable-buffer-for-receiving-input
+        void readConfigFile() {
             auto path = _cfgFile.string();
             int dev = open(path.c_str(), O_RDONLY);
             if (dev == -1) throw std::runtime_error("failed to open device " + path);
