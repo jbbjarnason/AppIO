@@ -62,6 +62,8 @@ namespace AppIO {
             myApp->updateConfigFile();
 
             _publisher.bind("ipc://"+_address);
+
+            std::cout << "Created publisher: " << _address << std::endl;
         }
 
         void init(T initialState, std::string typeName, TtoString toString) {

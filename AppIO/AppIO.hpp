@@ -178,7 +178,7 @@ namespace AppIO {
                 exit(0);
             }
             _appName = vm["name"].as<std::string>();
-            std::cout << "Starting app: " << _processName << "." << _appName << '\n';
+            std::cout << "Starting app: " << getFullAppName() << std::endl;
 
             initializeConfig();
 
