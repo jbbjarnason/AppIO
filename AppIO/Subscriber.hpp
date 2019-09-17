@@ -13,7 +13,7 @@ public:
     Subscriber(std::string name) : _subscriber(*AppIO::instance()->getContext()) {
         if (std::is_same<T, bool>::value)
             init(false, "bool", [this](const std::string &json) {
-                std::cout << "to json: " << json << "\n";
+//                std::cout << "to json: " << json << "\n";
                 return parse(json)["val"].GetBool();
             });
         else if (std::is_same<T, int>::value)
@@ -30,7 +30,7 @@ public:
             });
         else throw "Unknown type in sender declared in default constructor";
         auto myApp = AppIO::instance();
-        _address = _typeName + "." + myApp->getAppNameAndInstance() + "." + name;
+        _address = "/" + _typeName + "/" + myApp->getFullAppName() + "/" + name;
 
         auto conf = myApp->getConfig();
         if (conf->find("_receivers") == conf->end()) {
@@ -52,18 +52,7 @@ public:
     }
 
     void setCallback(const std::function<void(T)> &cb) {
-        _subscriber.async_receive(asio::buffer(_buf), [this, cb](auto const &error_code, auto bytes_transferred) {
-            if (error_code) {
-                std::cout << "Got an error " << error_code << "\n";
-                return;
-            }
-            auto output = std::string(_buf.data(), bytes_transferred);
-//            auto output = std::string(_buf.data(), bytes_transferred - 1);
-            std::cout << "got new output " << output << "\n"; //<< " parsed is "<< _lastState << "\n";
-            _lastState = _stringToTemplateVal(output.substr(_subscribtionStringLen, output.length()));
-
-            cb(_lastState);
-        });
+        _subscriber.async_receive(asio::buffer(_buf), onCallback(cb));
     }
 
     T getState() { return _lastState; }
@@ -73,7 +62,6 @@ private:
         _lastState = initialState;
         _typeName = typeName;
         _stringToTemplateVal = toTemplateVal;
-        _subscriber.connect("tcp://127.0.0.1:" + std::to_string(PORT));
     }
 
     inline rapidjson::Document parse(const std::string &json) {
@@ -83,8 +71,27 @@ private:
     }
 
     void subscribeTo(const std::string &name) {
-        _subscriber.set_option(azmq::socket::subscribe(name.c_str()));
-        _subscribtionStringLen = name.length();
+        _subscriber.connect("ipc://"+name);
+        _subscriber.set_option(azmq::socket::subscribe(""));
+        std::cout << _address << " is connected to " << name << std::endl;
+    }
+
+    inline auto onCallback(const std::function<void(T)> &cb) {
+        return [this, cb](auto const &error_code, auto bytes_transferred) {
+
+            if (error_code) {
+                std::cout << "Got an error " << error_code << "\n";
+                return;
+            }
+            auto output = std::string(_buf.data(), bytes_transferred);
+//            std::cout << "got new output " << output << "\n"; //<< " parsed is "<< _lastState << "\n";
+            auto newState = _stringToTemplateVal(output);
+            if (newState != _lastState) {
+                _lastState = newState;
+                cb(newState);
+            }
+            _subscriber.async_receive(asio::buffer(_buf), onCallback(cb));
+        };
     }
 
     toT _stringToTemplateVal;
@@ -92,7 +99,6 @@ private:
     azmq::sub_socket _subscriber;
     std::array<char, 256> _buf{};
     std::string _typeName = "";
-    uint _subscribtionStringLen;
     T _lastState;
     std::string _address;
 };

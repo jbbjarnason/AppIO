@@ -27,8 +27,8 @@ namespace AppIO {
         }
 
         std::shared_ptr<asio::io_context> _ioContext;
+        std::string _processName;
         std::string _appName;
-        std::string _appInstanceName;
         std::shared_ptr<nlohmann::json> _config;
         std::filesystem::path _cfgFile;
         asio::posix::stream_descriptor _in;
@@ -63,8 +63,7 @@ namespace AppIO {
         }
 
         void initializeConfig() {
-            std::string home = getenv("HOME");
-            _cfgFile = home + "/.industry/config/" + getAppNameAndInstance() + ".json";
+            _cfgFile = getFullAppPath()+"config.json";
             if (!std::filesystem::exists(_cfgFile)) {
                 writeDefaultConfig(_cfgFile);
             }
@@ -91,21 +90,35 @@ namespace AppIO {
             return _ioContext;
         }
 
+        const std::string &getProcessName() {
+            return _processName;
+        }
+
         const std::string &getAppName() {
             return _appName;
         }
 
-        const std::string &getInstanceAppName() {
-            return _appInstanceName;
-        }
-
-        const std::string getAppNameAndInstance() {
-            return _appName + "/" + _appInstanceName;
+        const std::string getFullAppName() {
+            return getProcessName() + "/" + getAppName();
         }
 
         std::shared_ptr<nlohmann::json> getConfig() {
             return _config;
         }
+
+        const std::string getGlobalPath() {
+            std::string home = getenv("HOME");
+            return home + "/.industry/";
+        }
+
+        const std::string getProcessPath() {
+            return getGlobalPath()+getProcessName()+"/";
+        }
+
+        const std::string getFullAppPath() {
+            return getGlobalPath()+getFullAppName()+"/";
+        }
+
 
 // todo: read this https://stackoverflow.com/questions/36304000/asio-is-there-an-automatically-resizable-buffer-for-receiving-input
         void readConfigFile() {
@@ -141,13 +154,13 @@ namespace AppIO {
                     std::cout << "Got an error " << error_code << " when writing to config file\n";
                     return;
                 }
-                std::cout << "successfully wrote to config file\n";
+//                std::cout << "successfully wrote to config file\n";
                 _out.reset();
             });
         }
 
         void initialize(int argc, char **argv) {
-            _appName = std::filesystem::path(argv[0]).filename();
+            _processName = std::filesystem::path(argv[0]).filename();
 
             options::options_description desc{"Options"};
             desc.add_options()
@@ -164,8 +177,8 @@ namespace AppIO {
                 std::cout << desc << '\n';
                 exit(0);
             }
-            _appInstanceName = vm["name"].as<std::string>();
-            std::cout << "Starting app: " << _appName << "." << _appInstanceName << '\n';
+            _appName = vm["name"].as<std::string>();
+            std::cout << "Starting app: " << _processName << "." << _appName << '\n';
 
             initializeConfig();
 
