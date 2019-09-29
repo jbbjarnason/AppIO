@@ -1,16 +1,19 @@
 #pragma once
 
 #include "AppIO.hpp"
+#include "MessageCourier.hpp"
 #include <rapidjson/document.h>
 
 namespace AppIO {
 
 template<class T>
-class Subscriber {
+class Subscriber: public MessageCourier<T> {
 public:
     typedef std::function<T(const std::string &)> toT;
 
-    Subscriber(std::string name) : _subscriber(*AppIO::instance()->getContext()) {
+    Subscriber(std::string name) :
+            MessageCourier<T>(),
+            _subscriber(*this->_app->getContext()) {
         if (std::is_same<T, bool>::value)
             init(false, "bool", [this](const std::string &json) {
 //                std::cout << "to json: " << json << "\n";
@@ -29,17 +32,18 @@ public:
                 return parse(json)["val"].GetString();
             });
         else throw "Unknown type in sender declared in default constructor";
+
         auto myApp = AppIO::instance();
-        _address = "/" + _typeName + "/" + myApp->getFullAppName() + "/" + name;
+        this->_address = "/" + this->_typeName + "/" + myApp->getFullAppName() + "/" + name;
 
         auto conf = myApp->getConfig();
         if (conf->find("_receivers") == conf->end()) {
             (*conf)["_receivers"] = {};
         }
-        if ((*conf)["_receivers"].find(_address) == (*conf)["_receivers"].end()) {
-            (*conf)["_receivers"][_address] = "";
+        if ((*conf)["_receivers"].find(this->_address) == (*conf)["_receivers"].end()) {
+            (*conf)["_receivers"][this->_address] = "";
         }
-        std::string connectedTo = (*conf)["_receivers"][_address];
+        std::string connectedTo = (*conf)["_receivers"][this->_address];
 
         if (!connectedTo.empty()) subscribeTo(connectedTo);
 
@@ -55,12 +59,9 @@ public:
         _subscriber.async_receive(asio::buffer(_buf), onCallback(cb));
     }
 
-    T getState() { return _lastState; }
-
 private:
     void init(T initialState, std::string typeName, const toT &toTemplateVal) {
-        _lastState = initialState;
-        _typeName = typeName;
+        MessageCourier<T>::init(initialState, typeName);
         _stringToTemplateVal = toTemplateVal;
     }
 
@@ -73,7 +74,7 @@ private:
     void subscribeTo(const std::string &name) {
         _subscriber.connect("ipc://"+name);
         _subscriber.set_option(azmq::socket::subscribe(""));
-        std::cout << _address << " is connected to " << name << std::endl;
+        std::cout << this->_address << " is connected to " << name << std::endl;
     }
 
     inline auto onCallback(const std::function<void(T)> &cb) {
@@ -86,8 +87,8 @@ private:
             auto output = std::string(_buf.data(), bytes_transferred);
 //            std::cout << "got new output " << output << "\n"; //<< " parsed is "<< _lastState << "\n";
             auto newState = _stringToTemplateVal(output);
-            if (newState != _lastState) {
-                _lastState = newState;
+            if (newState != this->_lastState) {
+                this->_lastState = newState;
                 cb(newState);
             }
             _subscriber.async_receive(asio::buffer(_buf), onCallback(cb));
@@ -98,9 +99,6 @@ private:
 
     azmq::sub_socket _subscriber;
     std::array<char, 256> _buf{};
-    std::string _typeName = "";
-    T _lastState;
-    std::string _address;
 };
 
 }

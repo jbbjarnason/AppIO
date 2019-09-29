@@ -8,12 +8,12 @@ int main(int argc, char **argv) {
     auto app = AppIO::AppIO::instance();
     app->initialize(argc, argv);
 
+    AppIO::Publisher<bool> output("NASDAQ");
+
     AppIO::Subscriber<bool> input("whazza");
     input.setCallback([](bool state) {
         std::cout << "\n\n\n state is " << state << "\n\n\n";
     });
-
-    AppIO::Publisher<bool> output("NASDAQ");
 
     boost::asio::steady_timer t(*app->getContext(), std::chrono::seconds(1));
 
