@@ -36,7 +36,7 @@ public:
         auto myApp = AppIO::instance();
         this->_address = "/" + this->_typeName + "/" + myApp->getFullAppName() + "/" + name;
 
-        auto conf = myApp->getConfig();
+        auto conf = Config::get();
         if (conf->find("_receivers") == conf->end()) {
             (*conf)["_receivers"] = {};
         }
@@ -47,7 +47,7 @@ public:
 
         if (!connectedTo.empty()) subscribeTo(connectedTo);
 
-        myApp->updateConfigFile();
+        conf->update();
     }
 
     Subscriber(T initalState, std::string typeName, const toT &toTemplateVal) : _subscriber(

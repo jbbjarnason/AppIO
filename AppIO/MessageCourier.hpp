@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AppIO.hpp"
+#include "Config.hpp"
 
 namespace AppIO {
 
