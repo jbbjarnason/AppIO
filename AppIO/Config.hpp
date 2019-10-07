@@ -20,13 +20,16 @@ namespace AppIO {
                 return ptr;
             }
             auto ptr = std::shared_ptr<Config>(new Config());
+            ptr->_self = ptr;
             _instance = ptr;
             return ptr;
         }
 
         Config(const Config &) = delete;
 
-        ~Config() {}
+        ~Config() {
+            std::cout << "Destructing config" << std::endl;
+        }
 
         nlohmann::json& operator[] (const std::string& key) {
             return (*_config)[key];
@@ -60,6 +63,9 @@ namespace AppIO {
                     _in(std::make_shared<asio::posix::stream_descriptor>(*_app->getContext()))
         {
             initializeConfig();
+            _app->addDestructor([this](){
+                _self.reset();
+            });
         }
 
 // todo: read this https://stackoverflow.com/questions/36304000/asio-is-there-an-automatically-resizable-buffer-for-receiving-input
@@ -141,6 +147,7 @@ namespace AppIO {
         std::shared_ptr<asio::posix::stream_descriptor> _out;
         std::shared_ptr<asio::posix::stream_descriptor> _in;
         std::array<char, 256> _buf{};
+        std::shared_ptr<Config> _self;
     };
 
 }

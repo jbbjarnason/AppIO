@@ -25,6 +25,7 @@ namespace AppIO {
         std::string _processName;
         std::string _appName;
         boost::asio::signal_set _signals;
+        std::vector<std::function<void()>> _destructFunctions;
 
         AppIO(const AppIO &) = delete;
 
@@ -72,7 +73,7 @@ namespace AppIO {
         }
 
         void initialize(int argc, char **argv) {
-            _processName = std::filesystem::path(argv[0]).filename();
+            _processName = std::filesystem::path(std::string(argv[0])).filename();
 
             options::options_description desc{"Options"};
             desc.add_options()
@@ -100,6 +101,16 @@ namespace AppIO {
 
         void run() {
             _ioContext->run();
+        }
+
+        void destruct() {
+            for (const auto& externalDestructFunc : _destructFunctions) {
+                externalDestructFunc();
+            }
+        }
+
+        void addDestructor(std::function<void()> destructFunc) {
+            _destructFunctions.push_back(destructFunc);
         }
     };
 
