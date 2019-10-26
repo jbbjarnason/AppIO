@@ -11,9 +11,7 @@ class Subscriber: public MessageCourier<T> {
 public:
     typedef std::function<T(const std::string &)> toT;
 
-    Subscriber(std::string name) :
-            MessageCourier<T>(),
-            _subscriber(*this->_app->getContext()) {
+    Subscriber(std::string name) {
         if (std::is_same<T, bool>::value)
             init(false, "bool", [this](const std::string &json) {
 //                std::cout << "to json: " << json << "\n";
@@ -50,19 +48,24 @@ public:
         conf->update();
     }
 
-    Subscriber(T initalState, std::string typeName, const toT &toTemplateVal) : _subscriber(
-            *AppIO::instance()->getContext()) {
+    Subscriber(T initalState, std::string typeName, const toT &toTemplateVal) {
         init(initalState, typeName, toTemplateVal);
     }
 
     void setCallback(const std::function<void(T)> &cb) {
-        _subscriber.async_receive(asio::buffer(_buf), onCallback(cb));
+        _subscriber->async_receive(asio::buffer(_buf), onCallback(cb));
     }
 
 private:
     void init(T initialState, std::string typeName, const toT &toTemplateVal) {
+        MessageCourier<T>();
         MessageCourier<T>::init(initialState, typeName);
         _stringToTemplateVal = toTemplateVal;
+        _subscriber = std::make_unique<azmq::sub_socket>(*this->_app->getContext());
+        AppIO::instance()->addDestructor([this](){
+            _subscriber->cancel(); // This prints out: "Got an error system:125" however valgrind is now happy
+            _subscriber.reset();
+        });
     }
 
     inline rapidjson::Document parse(const std::string &json) {
@@ -72,8 +75,8 @@ private:
     }
 
     void subscribeTo(const std::string &name) {
-        _subscriber.connect("ipc://"+name);
-        _subscriber.set_option(azmq::socket::subscribe(""));
+        _subscriber->connect("ipc://"+name);
+        _subscriber->set_option(azmq::socket::subscribe(""));
         std::cout << this->_address << " is connected to " << name << std::endl;
     }
 
@@ -91,13 +94,13 @@ private:
                 this->_lastState = newState;
                 cb(newState);
             }
-            _subscriber.async_receive(asio::buffer(_buf), onCallback(cb));
+            _subscriber->async_receive(asio::buffer(_buf), onCallback(cb));
         };
     }
 
     toT _stringToTemplateVal;
 
-    azmq::sub_socket _subscriber;
+    std::unique_ptr<azmq::sub_socket> _subscriber;
     std::array<char, 256> _buf{};
 };
 
