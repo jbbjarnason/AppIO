@@ -32,6 +32,7 @@ namespace AppIO {
                 _ownerCallback(ownerOnTimeout){
             if (singleShot) _timer->async_wait(singleShotTimeout());
             else _timer->async_wait(recurringTimeout(nanosecs));
+            AppIO::instance()->addDestructor([this](){ _self.reset(); });
         }
 
     private:
