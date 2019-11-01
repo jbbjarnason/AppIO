@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 project(AppIO VERSION 0.1 DESCRIPTION "Library for creating decoupled applications")
+
+include(AppIOCPack.cmake)
 include(GNUInstallDirs)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_REQUIRED_FLAGS -std=c++17)
@@ -22,7 +24,6 @@ include_directories(${Boost_INCLUDE_DIRS}
 
 
 add_subdirectory(examples)
-
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/AppIO
         DESTINATION include)
