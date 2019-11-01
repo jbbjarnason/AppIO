@@ -3,7 +3,8 @@ set(CPACK_PACKAGE_DESCRIPTION
         "The AppIO library provides bindings to AsyncZMQ and Boost Asio.
          Interface creates event loop and provide pub/sub, app-config and timer interfaces.
 This     Library is intended to work with C++ applications and Lua.")
-set(CPACK_PACKAGE_VERSION               "0.1")
+set(CPACK_PACKAGE_VERSION               "0.1.0")
+set(CPACK_PACKAGE_NAME                  "libappio-dev")
 
 # Debian-specific packaging
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE   "all")
