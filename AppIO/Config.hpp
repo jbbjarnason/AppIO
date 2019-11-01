@@ -128,7 +128,7 @@ namespace AppIO {
         void writeDefaultConfig(const std::filesystem::path &cfgFile) {
             auto dirPath = cfgFile.parent_path();
             if (!std::filesystem::exists(dirPath)) {
-                std::filesystem::create_directories(dirPath);
+                std::filesystem::create_directories(dirPath.string());
             }
 
             std::ofstream outCfg(cfgFile.string());
