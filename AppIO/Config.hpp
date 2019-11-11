@@ -60,6 +60,7 @@ namespace AppIO {
     private:
 
         Config() : _app(AppIO::instance()),
+                    _pendingWrite(false),
                     _in(std::make_shared<asio::posix::stream_descriptor>(*_app->getContext()))
         {
             initializeConfig();
@@ -82,12 +83,10 @@ namespace AppIO {
         }
 
         void updateConfigFile() {
-            _configLockGuard.lock();
-            if (_out) { // If pending write, cancel it and create a new one with more new config
-                _out->cancel();
-                _out.reset();
+            if (_out) {
+                _pendingWrite = true;
+                return;
             }
-            _configLockGuard.unlock();
 
             auto path = _filePath.string();
             int dev = open(path.c_str(), O_WRONLY);
@@ -104,6 +103,10 @@ namespace AppIO {
                 }
 //                std::cout << "successfully wrote to config file\n";
                 _out.reset();
+                if (_pendingWrite) {
+                    _pendingWrite = false;
+                    updateConfigFile();
+                }
             });
         }
 
@@ -122,7 +125,7 @@ namespace AppIO {
             }
 
             _config = std::make_shared<nlohmann::json>(openConfig(_filePath));
-            (*_config)["_senders"] = {};
+            (*_config)["_publishers"] = {};
         }
 
         void writeDefaultConfig(const std::filesystem::path &cfgFile) {
@@ -144,6 +147,7 @@ namespace AppIO {
         std::filesystem::path _filePath;
         std::shared_ptr<nlohmann::json> _config;
         std::mutex _configLockGuard;
+        bool _pendingWrite;
         std::shared_ptr<asio::posix::stream_descriptor> _out;
         std::shared_ptr<asio::posix::stream_descriptor> _in;
         std::array<char, 256> _buf{};
