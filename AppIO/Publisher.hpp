@@ -36,7 +36,7 @@ namespace AppIO {
             else if (std::is_same<T, int>::value)           init(0, "int");
             else if (std::is_same<T, double>::value)        init(0.0, "double");
             else if (std::is_same<T, std::string>::value)   init("", "string");
-            else throw "Unknown type in sender declared in default constructor";
+            else throw "Unknown type in publisher declared in default constructor";
         }
 
         std::string toString (const T &val) {
@@ -53,7 +53,7 @@ namespace AppIO {
                 std::filesystem::create_directories(dirPath);
 
             auto conf = Config::get();
-            (*conf)["_senders"].push_back(this->_address);
+            (*conf)["_publishers"].push_back(this->_address);
             conf->update();
 
             _publisher.bind("ipc://"+this->_address);

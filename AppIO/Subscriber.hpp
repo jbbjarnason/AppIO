@@ -35,13 +35,13 @@ public:
         this->_address = "/" + this->_typeName + "/" + myApp->getFullAppName() + "/" + name;
 
         auto conf = Config::get();
-        if (conf->find("_receivers") == conf->end()) {
-            (*conf)["_receivers"] = {};
+        if (conf->find("_subscribers") == conf->end()) {
+            (*conf)["_subscribers"] = {};
         }
-        if ((*conf)["_receivers"].find(this->_address) == (*conf)["_receivers"].end()) {
-            (*conf)["_receivers"][this->_address] = "";
+        if ((*conf)["_subscribers"].find(this->_address) == (*conf)["_subscribers"].end()) {
+            (*conf)["_subscribers"][this->_address] = "";
         }
-        std::string connectedTo = (*conf)["_receivers"][this->_address];
+        std::string connectedTo = (*conf)["_subscribers"][this->_address];
 
         if (!connectedTo.empty()) subscribeTo(connectedTo);
 
@@ -62,8 +62,10 @@ private:
         MessageCourier<T>::init(initialState, typeName);
         _stringToTemplateVal = toTemplateVal;
         _subscriber = std::make_unique<azmq::sub_socket>(*this->_app->getContext());
+        _subscriberDestructing = false;
         AppIO::instance()->addDestructor([this](){
-            _subscriber->cancel(); // This prints out: "Got an error system:125" however valgrind is now happy
+            _subscriberDestructing = true;
+            _subscriber->cancel();
             _subscriber.reset();
         });
     }
@@ -84,7 +86,7 @@ private:
         return [this, cb](auto const &error_code, auto bytes_transferred) {
 
             if (error_code) {
-                std::cout << "Got an error " << error_code << "\n";
+                if (!_subscriberDestructing) std::cout << "Got an error " << error_code << "\n";
                 return;
             }
             auto output = std::string(_buf.data(), bytes_transferred);
@@ -101,6 +103,7 @@ private:
     toT _stringToTemplateVal;
 
     std::unique_ptr<azmq::sub_socket> _subscriber;
+    bool _subscriberDestructing;
     std::array<char, 256> _buf{};
 };
 
