@@ -18,7 +18,7 @@ namespace AppIO {
     class AppIO {
     private:
         AppIO() : _ioContext(std::make_shared<asio::io_context>(1)),
-                  _signals(*_ioContext, SIGINT, SIGTERM) {
+                  _signals(*_ioContext, SIGINT, SIGTERM, SIGQUIT) {
         }
 
         std::shared_ptr<asio::io_context> _ioContext;
