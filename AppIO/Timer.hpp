@@ -34,6 +34,7 @@ namespace AppIO {
             else _timer->async_wait(recurringTimeout(nanosecs));
             AppIO::instance()->addDestructor([this](){ _self.reset(); });
         }
+        virtual ~Timer(){}
 
     private:
         using asyncTimer = boost::asio::high_resolution_timer;
