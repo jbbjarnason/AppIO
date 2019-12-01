@@ -24,6 +24,7 @@ include_directories(${Boost_INCLUDE_DIRS}
 
 
 add_subdirectory(examples)
+add_subdirectory(bindings)
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/AppIO
         DESTINATION include)
