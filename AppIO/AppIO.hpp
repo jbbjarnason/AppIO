@@ -70,7 +70,7 @@ namespace AppIO {
 
         const std::string getGlobalPath() {
             std::string home = getenv("HOME");
-            return home + "/.industry/";
+            return home + "/.appio/";
         }
 
         const std::string getProcessPath() {
