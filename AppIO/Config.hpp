@@ -2,10 +2,6 @@
 
 #include <filesystem>
 #include <nlohmann/json.hpp>
-#include <mutex>
-#include <memory>
-#include <boost/asio.hpp>
-
 #include "AppIO.hpp"
 
 namespace AppIO {
@@ -24,41 +20,29 @@ namespace AppIO {
             _instance = ptr;
             return ptr;
         }
-
         Config(const Config &) = delete;
-
         ~Config() {
             std::cout << "Destructing config" << std::endl;
         }
 
-        nlohmann::json& operator[] (const std::string& key) {
-            return (*_config)[key];
-        }
-
-        auto find (const std::string& key) {
-            return _config->find(key);
-        }
-
-        auto end () {
-            return _config->end();
-        }
-
-        void update() {
+        void commit() {
             updateConfigFile();
         }
 
-        template<class T>
-        void set(const std::string& key, T value) { // Overrides and or adds the value
-
+        std::shared_ptr<nlohmann::json> data() {
+            return _config;
         }
 
-        template<class T>
-        bool add(const std::string& key, T value) { // Adds value if it is not existing, returns true if it got inserted.
-            return true;
+        void restructure(nlohmann::json completeData) {
+            *_config = completeData;
+        }
+
+        void insert(const nlohmann::json& mergeIntoConfig) { // Example {{"foo", "bar"}} = {"foo":"bar"}
+//            TODO: handle all kinds of objects nlohmann::json::value_t::object
+            _config->insert(mergeIntoConfig.begin(), mergeIntoConfig.end());
         }
 
     private:
-
         Config() : _app(AppIO::instance()),
                     _pendingWrite(false),
                     _in(std::make_shared<asio::posix::stream_descriptor>(*_app->getContext()))
@@ -68,6 +52,8 @@ namespace AppIO {
                 _self.reset();
             });
         }
+
+        std::shared_ptr<nlohmann::json> _config;
 
 // todo: read this https://stackoverflow.com/questions/36304000/asio-is-there-an-automatically-resizable-buffer-for-receiving-input
         void readConfigFile() {
@@ -94,7 +80,7 @@ namespace AppIO {
             _out = std::make_shared<asio::posix::stream_descriptor>(*_app->getContext());
             _out->assign(dev);
 
-            std::string configAsString = _config->dump();
+            std::string configAsString = _config->dump() + "\n";
             auto buf = asio::buffer(configAsString.c_str(), configAsString.length());
             _out->async_write_some(buf, [this](auto const &error_code, auto bytes_transferred) {
                 if (error_code) {
@@ -125,7 +111,6 @@ namespace AppIO {
             }
 
             _config = std::make_shared<nlohmann::json>(openConfig(_filePath));
-            (*_config)["_publishers"] = {};
         }
 
         void writeDefaultConfig(const std::filesystem::path &cfgFile) {
@@ -145,8 +130,6 @@ namespace AppIO {
 
         std::shared_ptr<AppIO> _app;
         std::filesystem::path _filePath;
-        std::shared_ptr<nlohmann::json> _config;
-        std::mutex _configLockGuard;
         bool _pendingWrite;
         std::shared_ptr<asio::posix::stream_descriptor> _out;
         std::shared_ptr<asio::posix::stream_descriptor> _in;

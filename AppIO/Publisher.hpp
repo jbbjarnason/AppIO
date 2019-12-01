@@ -52,9 +52,13 @@ namespace AppIO {
             if (!std::filesystem::exists(dirPath))
                 std::filesystem::create_directories(dirPath);
 
-            auto conf = Config::get();
-            (*conf)["_publishers"].push_back(this->_address);
-            conf->update();
+            auto config = Config::get();
+            config->insert({{"_publishers", {this->_address}}});
+            config->commit();
+//            if ((*conf).find("_publishers") == conf->end())
+//                (*conf)["_publishers"] = {};
+//            (*conf)["_publishers"].push_back(this->_address);
+//            conf->commit();
 
             _publisher.bind("ipc://"+this->_address);
 

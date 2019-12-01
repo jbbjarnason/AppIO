@@ -34,18 +34,17 @@ public:
         auto myApp = AppIO::instance();
         this->_address = "/" + this->_typeName + "/" + myApp->getFullAppName() + "/" + name;
 
-        auto conf = Config::get();
-        if (conf->find("_subscribers") == conf->end()) {
-            (*conf)["_subscribers"] = {};
-        }
-        if ((*conf)["_subscribers"].find(this->_address) == (*conf)["_subscribers"].end()) {
-            (*conf)["_subscribers"][this->_address] = "";
-        }
-        std::string connectedTo = (*conf)["_subscribers"][this->_address];
+        auto config = Config::get();
+        config->insert({{
+                "_subscribers", {
+                    {this->_address, ""}
+                }
+            }
+        });
+        std::string connectedTo = (*config->data())["_subscribers"][this->_address];
+        config->commit();
 
         if (!connectedTo.empty()) subscribeTo(connectedTo);
-
-        conf->update();
     }
 
     Subscriber(T initalState, std::string typeName, const toT &toTemplateVal) {
