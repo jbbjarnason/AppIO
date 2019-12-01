@@ -29,8 +29,17 @@ namespace AppIO {
 
         AppIO(const AppIO &) = delete;
 
+        void destruct() {
+            std::cout << std::endl << "Destructing app " << getAppName() << std::endl;
+            for (const auto& externalDestructFunc : _destructFunctions) {
+                externalDestructFunc();
+            }
+        }
+
     public:
-        ~AppIO() {}
+        ~AppIO() {
+            std::cout << "Exiting now" << std::endl;
+        }
 
         static std::shared_ptr<AppIO> instance() {
             static std::weak_ptr<AppIO> _instance;
@@ -94,8 +103,7 @@ namespace AppIO {
             std::cout << "Starting app: " << getFullAppName() << std::endl;
 
             _signals.async_wait([this](auto, auto) {
-                _ioContext->stop();
-                std::cout << " deinitializing\n";
+                stop();
             });
         }
 
@@ -103,10 +111,9 @@ namespace AppIO {
             _ioContext->run();
         }
 
-        void destruct() {
-            for (const auto& externalDestructFunc : _destructFunctions) {
-                externalDestructFunc();
-            }
+        void stop() {
+            _ioContext->stop();
+            destruct();
         }
 
         void addDestructor(std::function<void()> destructFunc) {
