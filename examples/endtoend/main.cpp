@@ -13,19 +13,19 @@ int main(int argc, char **argv) {
 
     AppIO::Subscriber<bool> input("whazza");
     input.setCallback([](bool state) {
-        std::cout << "\n\n\n state is " << state << "\n\n\n";
+        auto at = std::chrono::steady_clock::now().time_since_epoch().count();
+        std::cout << "\n\n\n state is " << state << " at " << at << "\n\n\n";
     });
 
     bool lastState = false;
 
-    auto timer = AppIO::Timer::createInterval(std::chrono::milliseconds(1000), [&output, &lastState]() {
+    auto timer = AppIO::Timer::createInterval(std::chrono::milliseconds(10), [&output, &lastState]() {
         lastState = !lastState;
-        std::cout << "got new time interval publishing " << lastState << std::endl;
+        auto at = std::chrono::steady_clock::now().time_since_epoch().count();
+        std::cout << "got new time interval publishing " << lastState << " at " << at << std::endl;
         output.send(lastState);
     });
 
 
     app->run();
-
-    app->destruct();
 }
