@@ -9,9 +9,9 @@ int main(int argc, char **argv) {
     auto app = AppIO::AppIO::instance();
     app->initialize(argc, argv);
 
-    AppIO::Publisher<bool> output("NASDAQ");
+    AppIO::Publisher<bool> output("NASDAQ", false);
 
-    AppIO::Subscriber<bool> input("whazza");
+    AppIO::Subscriber<bool> input("whazza", false);
     input.setCallback([](bool state) {
         auto at = std::chrono::steady_clock::now().time_since_epoch().count();
         std::cout << "\n\n\n state is " << state << " at " << at << "\n\n\n";
