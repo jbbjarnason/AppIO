@@ -8,7 +8,12 @@ namespace AppIO {
     template<class T>
     class Publisher: public MessageCourier<T> {
     public:
-        Publisher(const std::string &address, const T& initialValue) : Publisher(initialValue) {
+        Publisher(const std::string &address, const T& initialValue = T()) :
+                MessageCourier<T>(),
+                _publisher(*this->_app->getContext())
+        {
+            nlohmann::json j = initialValue;
+            MessageCourier<T>::init(initialValue, j.type_name());
             setAddress(address);
         }
         void send(const T &val) {
@@ -18,13 +23,6 @@ namespace AppIO {
             _publisher.send(asio::buffer(j.dump()));
         }
     private:
-        explicit Publisher(const T& initialValue) :
-                MessageCourier<T>(),
-                _publisher(*this->_app->getContext()) {
-            nlohmann::json j = initialValue;
-            MessageCourier<T>::init(initialValue, j.type_name());
-        }
-
         void setAddress(const std::string &address) {
             this->_address = this->_app->getFullAppPath() + "ipc/" + this->_typeName + "/" + address;
 //            std::cout << "Binding to address " << this->_address << " length is " << this->_address.size();

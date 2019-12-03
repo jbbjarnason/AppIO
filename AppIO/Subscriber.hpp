@@ -1,6 +1,5 @@
 #pragma once
 
-#include "AppIO.hpp"
 #include "MessageCourier.hpp"
 
 namespace AppIO {
@@ -8,15 +7,21 @@ namespace AppIO {
 template<class T>
 class Subscriber: public MessageCourier<T> {
 public:
-    Subscriber(std::string name, const T& initialValue):
+    Subscriber(std::string address, const T& initialValue = T()):
         _subscriber(std::make_unique<azmq::sub_socket>(*this->_app->getContext())),
-        _subscriberDestructing(false)
+        _subscriberDestructing(false),
+        MessageCourier<T>()
     {
         nlohmann::json j = initialValue;
-        init(initialValue, j.type_name());
+        MessageCourier<T>::init(initialValue, j.type_name());
 
-        auto myApp = AppIO::instance();
-        this->_address = "/" + this->_typeName + "/" + myApp->getFullAppName() + "/" + name;
+        this->_app->addDestructor([this](){
+            _subscriberDestructing = true;
+            _subscriber->cancel();
+            _subscriber.reset();
+        });
+
+        this->_address = "/" + this->_typeName + "/" + this->_app->getFullAppName() + "/" + address;
 
         auto config = Config::get();
         config->insert({{
@@ -36,16 +41,6 @@ public:
     }
 
 private:
-    void init(T initialState, std::string typeName) {
-        MessageCourier<T>();
-        MessageCourier<T>::init(initialState, typeName);
-        AppIO::instance()->addDestructor([this](){
-            _subscriberDestructing = true;
-            _subscriber->cancel();
-            _subscriber.reset();
-        });
-    }
-
     void subscribeTo(const std::string &name) {
         _subscriber->connect("ipc://"+name);
         _subscriber->set_option(azmq::socket::subscribe(""));
